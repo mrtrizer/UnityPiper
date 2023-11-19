@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Abuksigun.Piper
 {
-    public unsafe class PiperExample : MonoBehaviour
+    public class PiperExample : MonoBehaviour
     {
         [SerializeField] AudioSource audioSource;
 
@@ -12,10 +12,12 @@ namespace Abuksigun.Piper
         [SerializeField] string modelPath;
         [SerializeField] string espeakDataPath;
 
+        Piper piper;
+        PiperVoice voice;
         PiperSpeaker piperSpeaker;
 
-        [ContextMenu("Run")]
-        void Run()
+        [ContextMenu("Run Stream")]
+        async void Run()
         {
             if (gameObject.scene.name == null)
                 throw new InvalidOperationException("This script must be attached to a game object in a scene, otherwise AudioSource can't play");
@@ -32,35 +34,19 @@ namespace Abuksigun.Piper
             if (!Directory.Exists(fullEspeakDataPath))
                 throw new DirectoryNotFoundException("Espeak data directory not found");
 
-            var piperConfig = PiperLib.create_PiperConfig(fullEspeakDataPath);
-            PiperLib.initializePiper(piperConfig);
+            piper ??= await Piper.LoadPiper(fullEspeakDataPath);
             try
             {
-                var voice = PiperLib.create_Voice();
-                try
-                {
-                    PiperLib.loadVoice(piperConfig, fullModelPath, fullModelPath + ".json", voice, null);
-                    piperSpeaker ??= new PiperSpeaker();
-                    var audioClip = piperSpeaker.ContinueSpeach(piperConfig, voice, text);
-                    audioSource.clip = audioClip;
-                    audioSource.loop = true;
-                    audioSource.Play();
-                    
-                }
-                finally
-                {
-                    PiperLib.destroy_Voice(voice);
-                }
+                voice ??= await PiperVoice.LoadPiperVoice(piper, fullModelPath);
+                piperSpeaker ??= new PiperSpeaker(voice);
+                piperSpeaker.ContinueSpeach(text);
+                audioSource.clip = piperSpeaker.AudioClip;
+                audioSource.loop = true;
+                audioSource.Play();
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
-            }
-            finally
-            {
-                PiperLib.terminatePiper(piperConfig);
-                PiperLib.destroy_PiperConfig(piperConfig);
-                Debug.Log("Done!");
             }
         }
     }
