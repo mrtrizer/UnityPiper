@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Abuksigun.Piper
@@ -30,7 +31,10 @@ namespace Abuksigun.Piper
 
 		public static Task<Piper> LoadPiper(string fullEspeakDataPath)
 		{
-			return Task.Run(() =>
+            if (!Directory.Exists(fullEspeakDataPath))
+                throw new DirectoryNotFoundException("Espeak data directory not found");
+
+            return Task.Run(() =>
 			{
 				var piperConfig = PiperLib.create_PiperConfig(fullEspeakDataPath);
 				try

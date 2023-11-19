@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Abuksigun.Piper
@@ -33,6 +34,11 @@ namespace Abuksigun.Piper
 
         public static Task<PiperVoice> LoadPiperVoice(Piper piper, string fullModelPath)
         {
+            if (!File.Exists(fullModelPath))
+                throw new FileNotFoundException("Model file not found", fullModelPath);
+            if (!File.Exists(fullModelPath + ".json"))
+                throw new FileNotFoundException("Model descriptor not found (Make sure it has the same name as model + .json)", fullModelPath);
+
             return Task.Run(() =>
             {
                 var newVoice = PiperLib.create_Voice();

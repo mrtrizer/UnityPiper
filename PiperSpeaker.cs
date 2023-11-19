@@ -11,7 +11,9 @@ namespace Abuksigun.Piper
         readonly PiperVoice voice;
 
         readonly List<float[]> pcmBuffers = new List<float[]>();
-        int pcmBufferPointer = 0;
+        volatile int pcmBufferPointer = 0;
+        volatile string queuedText = null;
+        Task speachTask = null;
 
         public AudioClip AudioClip => audioClip;
 
@@ -28,18 +30,45 @@ namespace Abuksigun.Piper
                 UnityEngine.Object.Destroy(audioClip);
         }
 
-        public unsafe Task Speak(string text)
+        // Use when you want to interrupt the current speech and say new replica
+        public Task Speak(string text)
         {
-            pcmBuffers.Clear();
             pcmBufferPointer = 0;
+            return OverrideSpeech(text);
+        }
+
+        // Use when you are streaming generating text, so you can override audiostream seamlessly while it's playing
+        // For example, LLM generates first 3 tokens "I'm going to", you can start playing them before generation ends
+        // And then override with "I'm going to school" while it's playing.
+        // This way you can minimize latency between generation and playback
+        public Task OverrideSpeech(string text)
+        {
+            lock (pcmBuffers)
+                pcmBuffers.Clear();
             return ContinueSpeach(text);
         }
 
+        // Use when you want to add more text to the current speech
         public unsafe Task ContinueSpeach(string text)
         {
-            return Task.Run(() => {
-                voice.TextToAudioStream(text, (short* data, int length) => AddPCMData(data, length));
-            });
+            if (speachTask == null || speachTask.IsCompleted)
+            {
+                speachTask = Task.Run(() =>
+                {
+                    do
+                    {
+                        voice.TextToAudioStream(text, (short* data, int length) => AddPCMData(data, length));
+                        text = queuedText;
+                        queuedText = null;
+                    }
+                    while (text != null);
+                });
+            }
+            else
+            {
+                queuedText = text;
+            }
+            return speachTask;
         }
 
         void PCMRead(float[] data)
