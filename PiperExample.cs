@@ -18,7 +18,7 @@ namespace Abuksigun.Piper
         PiperSpeaker piperSpeaker;
 
         [ContextMenu("Run Stream")]
-        async Task Run()
+        async void Run()
         {
             if (gameObject.scene.name == null)
                 throw new InvalidOperationException("This script must be attached to a game object in a scene, otherwise AudioSource can't play :(");
@@ -27,19 +27,12 @@ namespace Abuksigun.Piper
             string fullEspeakDataPath = Path.Join(Application.streamingAssetsPath, espeakDataPath);
 
             piper ??= await Piper.LoadPiper(fullEspeakDataPath);
-            try
-            {
-                voice ??= await PiperVoice.LoadPiperVoice(piper, fullModelPath);
-                piperSpeaker ??= new PiperSpeaker(voice);
-                _ = piperSpeaker.ContinueSpeach(text).ContinueWith((x) => Debug.Log($"Generation finished with status: {x.Status}"));
-                audioSource.clip = piperSpeaker.AudioClip;
-                audioSource.loop = true;
-                audioSource.Play();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogException(ex);
-            }
+            voice ??= await PiperVoice.LoadPiperVoice(piper, fullModelPath);
+            piperSpeaker ??= new PiperSpeaker(voice);
+            _ = piperSpeaker.ContinueSpeach(text).ContinueWith((x) => Debug.Log($"Generation finished with status: {x.Status}"));
+            audioSource.clip = piperSpeaker.AudioClip;
+            audioSource.loop = true;
+            audioSource.Play();
         }
     }
 }
