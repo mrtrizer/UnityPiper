@@ -29,7 +29,7 @@ namespace Abuksigun.Piper
             piper ??= await Piper.LoadPiper(fullEspeakDataPath);
             voice ??= await PiperVoice.LoadPiperVoice(piper, fullModelPath);
             piperSpeaker ??= new PiperSpeaker(voice);
-            _ = piperSpeaker.ContinueSpeach(text).ContinueWith((x) => Debug.Log($"Generation finished with status: {x.Status}"));
+            _ = piperSpeaker.ContinueSpeach(text).ContinueWith(x => Debug.Log($"Generation finished with status: {x.Status}"));
             audioSource.clip = piperSpeaker.AudioClip;
             audioSource.loop = true;
             audioSource.Play();
